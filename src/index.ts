@@ -54,7 +54,7 @@ async function main() {
 
   console.log("[INIT] Telegram bot launched!");
 
-  cron.schedule("*/15 * * * *", async () => {
+  cron.schedule("*/1 * * * *", async () => {
     const now = new Date().toLocaleString(); // or you could use other date/time formats
     console.log(`[CRON] Checking disclosures at ${now}...`);
 
