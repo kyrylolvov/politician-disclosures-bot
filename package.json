@@ -1,0 +1,24 @@
+{
+  "name": "politician-disclosure-bot",
+  "module": "index.ts",
+  "type": "module",
+  "scripts": {
+    "start": "bun run ./src/index.ts"
+  },
+  "devDependencies": {
+    "@types/adm-zip": "^0.5.7",
+    "@types/bun": "latest",
+    "@types/node-cron": "^3.0.11",
+    "@types/xml2js": "^0.4.14"
+  },
+  "peerDependencies": {
+    "typescript": "^5.0.0"
+  },
+  "dependencies": {
+    "adm-zip": "^0.5.16",
+    "axios": "^1.7.9",
+    "node-cron": "^3.0.3",
+    "telegraf": "^4.16.3",
+    "xml2js": "^0.6.2"
+  }
+}
