@@ -2,54 +2,56 @@ import cron from "node-cron";
 
 import { bot, setupBotHandlers, broadcastPdfToAll } from "./telegram";
 import { loadVisitedDocIds, saveVisitedDocIds } from "./store";
-import { downloadAndParseDisclosuresZip, downloadDisclosure } from "./disclosures";
-import { serve } from "bun";
+import { fetchDisclosures, downloadDisclosure } from "./disclosures";
+
+/**
+ * Processes and broadcasts new disclosures periodically.
+ */
+async function processDisclosures() {
+  const visitedDocIds = loadVisitedDocIds();
+
+  try {
+    const disclosures = await fetchDisclosures();
+    console.log("[DEBUG] Total disclosures fetched:", disclosures.length);
+
+    for (const disclosure of disclosures) {
+      if (visitedDocIds.includes(disclosure.documentId)) continue;
+
+      visitedDocIds.push(disclosure.documentId);
+
+      try {
+        const pdfBuffer = await downloadDisclosure(disclosure.fileUrl);
+        await broadcastPdfToAll(disclosure, pdfBuffer);
+      } catch (err) {
+        console.error(`Error handling disclosure for ${disclosure.name}:`, err);
+      }
+    }
+
+    saveVisitedDocIds(visitedDocIds);
+  } catch (error) {
+    console.error("Error processing disclosures:", error);
+  }
+}
 
 /**
  * Initializes the Telegram bot, sets up cron scheduling,
- * and processes new disclosures every hour.
+ * and processes disclosures every 15 minutes.
  */
 async function main() {
   setupBotHandlers();
-
   bot.launch();
 
   console.log("[INIT] Telegram bot launched!");
 
   cron.schedule("* * * * *", async () => {
-    const now = new Date().toLocaleString(); // or you could use other date/time formats
-    console.log(`[CRON] Checking disclosures at ${now}...`);
+    const now = new Date().toLocaleString();
 
-    const visitedDocIds = loadVisitedDocIds();
+    console.log(`[CRON] Running disclosure check at ${now}...`);
 
-    const disclosures = await downloadAndParseDisclosuresZip();
-    const members = disclosures?.FinancialDisclosure?.Member || [];
-
-    console.log("[DEBUG] Total members in XML:", members.length);
-
-    for (const member of members) {
-      const filingType = member.FilingType?.[0];
-      if (filingType !== "P") continue;
-
-      const docId = member.DocID?.[0];
-      if (!docId) continue;
-
-      if (!visitedDocIds.includes(docId)) {
-        visitedDocIds.push(docId);
-
-        try {
-          const pdfBuffer = await downloadDisclosure(docId);
-          await broadcastPdfToAll(member, pdfBuffer);
-        } catch (err) {
-          console.error(`Error handling docId ${docId}:`, err);
-        }
-      }
-    }
-
-    saveVisitedDocIds(visitedDocIds);
+    await processDisclosures();
   });
 
-  console.log("[INIT] Cron job scheduled to run every 15 minutes.");
+  console.log("[INIT] Cron job scheduled to run every minute.");
 }
 
 main().catch((err) => {

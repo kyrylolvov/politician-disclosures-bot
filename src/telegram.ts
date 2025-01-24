@@ -1,6 +1,6 @@
 import { Telegraf } from "telegraf";
 import { loadChatIds, saveChatIds } from "./chat";
-import type { ClerkMember } from "./types";
+import type { ClerkDisclosure } from "./types";
 
 const BOT_TOKEN = process.env.TELEGRAM_BOT_TOKEN || "";
 export const bot = new Telegraf(BOT_TOKEN);
@@ -25,24 +25,15 @@ export function setupBotHandlers() {
 /**
  * Sends a PDF buffer to all known chat IDs for the given clerk member.
  */
-export async function broadcastPdfToAll(member: ClerkMember, pdfBuffer: Buffer) {
-  const docId = member.DocID?.[0] ?? "";
-  const firstName = member.First?.[0] ?? "";
-  const lastName = member.Last?.[0] ?? "";
-
-  const suffix = member.Suffix?.[0] ?? "";
-  const prefix = member.Prefix?.[0] ?? "";
-
-  const fullName = `${prefix} ${firstName} ${lastName} ${suffix}`.replace(/\s+/g, " ").trim();
-
+export async function broadcastPdfToAll(member: ClerkDisclosure, pdfBuffer: Buffer) {
   for (const chatId of knownChatIds) {
     try {
       await bot.telegram.sendDocument(
         chatId,
-        { source: pdfBuffer, filename: `${docId}.pdf` },
-        { caption: `New disclosure for ${fullName}` }
+        { source: pdfBuffer, filename: `${member.documentId}.pdf` },
+        { caption: `New disclosure for ${member.name}` }
       );
-      console.log(`PDF sent to chat id ${chatId} for docId = ${docId}`);
+      console.log(`PDF sent to chat id ${chatId} for docId = ${member.documentId}`);
     } catch (err) {
       console.error(`Error sending PDF to chatId ${chatId}:`, err);
     }

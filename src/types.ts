@@ -1,19 +1,10 @@
-export interface ClerkMember {
-  Prefix?: string[];
-  Last?: string[];
-  First?: string[];
-  Suffix?: string[];
-  FilingType?: string[];
-  StateDst?: string[];
-  Year?: string[];
-  FilingDate?: string[];
-  DocID?: string[];
-}
-
-export interface ClerkParsedXml {
-  FinancialDisclosure?: {
-    Member?: ClerkMember[];
-  };
+export interface ClerkDisclosure {
+  name: string;
+  office: string;
+  filingYear: string;
+  filingType: string;
+  fileUrl: string;
+  documentId: string;
 }
 
 export interface VisitedEntry {

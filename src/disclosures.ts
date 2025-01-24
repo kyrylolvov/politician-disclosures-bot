@@ -1,29 +1,48 @@
 import axios from "axios";
-import AdmZip from "adm-zip";
-import { parseStringPromise } from "xml2js";
-
-import type { ClerkParsedXml } from "./types";
+import * as cheerio from "cheerio";
+import type { ClerkDisclosure } from "./types";
 
 /**
- * Downloads the disclosures ZIP, extracts the 2025FD.xml file,
- * parses it as XML, and returns the result as a JavaScript object.
+ * Fetches disclosures for the year 2025 using a POST request,
+ * parses the HTML response, and returns the results.
  */
-export async function downloadAndParseDisclosuresZip(): Promise<ClerkParsedXml> {
+export async function fetchDisclosures(): Promise<ClerkDisclosure[]> {
+  const url = "https://disclosures-clerk.house.gov/FinancialDisclosure/ViewMemberSearchResult";
+  const formData = new URLSearchParams({ FilingYear: "2025" });
+
   try {
-    const zipUrl = "https://disclosures-clerk.house.gov/public_disc/financial-pdfs/2025FD.zip";
-    const response = await axios.get<ArrayBuffer>(zipUrl, { responseType: "arraybuffer" });
+    const response = await axios.post(url, formData.toString(), {
+      headers: { "Content-Type": "application/x-www-form-urlencoded" },
+    });
 
-    const zip = new AdmZip(Buffer.from(response.data));
-    const xmlEntry = zip.getEntry("2025FD.xml");
-    if (!xmlEntry) {
-      throw new Error("Could not find 2025FD.xml in the ZIP");
-    }
+    const disclosures: ClerkDisclosure[] = [];
+    const $ = cheerio.load(response.data);
 
-    const xmlContent = xmlEntry.getData().toString("utf-8");
-    const parsed = await parseStringPromise(xmlContent);
-    return parsed as ClerkParsedXml;
+    $("table tbody tr").each((_, row) => {
+      const name = $(row).find("td.memberName a").text().trim();
+      const fileUrl = $(row).find("td.memberName a").attr("href")?.trim();
+      const office = $(row).find("td[data-label='Office']").text().trim();
+      const filingYear = $(row).find("td[data-label='Filing Year']").text().trim();
+      const filingType = $(row).find("td[data-label='Filing']").text().trim();
+
+      const docIdMatch = fileUrl?.match(/\/(\d+)\.pdf$/);
+      const documentId = docIdMatch ? docIdMatch[1] : null;
+
+      if (!name || !fileUrl || !documentId) return;
+
+      disclosures.push({
+        name,
+        office,
+        filingYear,
+        filingType,
+        fileUrl,
+        documentId,
+      });
+    });
+
+    return disclosures;
   } catch (error) {
-    console.error("Error in downloadAndParseDisclosureZip:", error);
+    console.error("Failed to fetch disclosures:", error);
     throw error;
   }
 }
@@ -32,9 +51,9 @@ export async function downloadAndParseDisclosuresZip(): Promise<ClerkParsedXml> 
  * Downloads a single disclosure PDF for the given document id
  * and returns its contents as a Buffer.
  */
-export async function downloadDisclosure(docId: string): Promise<Buffer> {
+export async function downloadDisclosure(documentUrl: string): Promise<Buffer> {
   try {
-    const pdfUrl = `https://disclosures-clerk.house.gov/public_disc/ptr-pdfs/2025/${docId}.pdf`;
+    const pdfUrl = `https://disclosures-clerk.house.gov/${documentUrl}`;
     const response = await axios.get<ArrayBuffer>(pdfUrl, { responseType: "arraybuffer" });
     return Buffer.from(response.data);
   } catch (err) {
