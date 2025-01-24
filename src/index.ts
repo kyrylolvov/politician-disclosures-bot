@@ -26,7 +26,7 @@ export function startDummyServer() {
     },
   });
 
-  cron.schedule("*/10 * * * *", async () => {
+  cron.schedule("*/12 * * * *", async () => {
     const now = new Date().toLocaleString();
     console.log(`[CRON] Keep-alive ping at ${now}...`);
 
@@ -54,40 +54,47 @@ async function main() {
 
   console.log("[INIT] Telegram bot launched!");
 
-  cron.schedule("*/1 * * * *", async () => {
-    const now = new Date().toLocaleString(); // or you could use other date/time formats
-    console.log(`[CRON] Checking disclosures at ${now}...`);
+  // Schedule the job to run every minute, but only between 9 AM and 10 AM EST
+  cron.schedule("* * * * *", async () => {
+    const now = new Date();
+    const estTime = new Date(now.toLocaleString("en-US", { timeZone: "America/New_York" }));
+    const estHour = estTime.getHours();
 
-    const visitedDocIds = loadVisitedDocIds();
+    if (estHour >= 9 && estHour < 10) {
+      const formattedTime = estTime.toLocaleString("en-US", { timeZone: "America/New_York" });
+      console.log(`[CRON] Checking disclosures at ${formattedTime}...`);
 
-    const disclosures = await downloadAndParseDisclosuresZip();
-    const members = disclosures?.FinancialDisclosure?.Member || [];
+      const visitedDocIds = loadVisitedDocIds();
 
-    console.log("[DEBUG] Total members in XML:", members.length);
+      const disclosures = await downloadAndParseDisclosuresZip();
+      const members = disclosures?.FinancialDisclosure?.Member || [];
 
-    for (const member of members) {
-      const filingType = member.FilingType?.[0];
-      if (filingType !== "P") continue;
+      console.log("[DEBUG] Total members in XML:", members.length);
 
-      const docId = member.DocID?.[0];
-      if (!docId) continue;
+      for (const member of members) {
+        const filingType = member.FilingType?.[0];
+        if (filingType !== "P") continue;
 
-      if (!visitedDocIds.includes(docId)) {
-        visitedDocIds.push(docId);
+        const docId = member.DocID?.[0];
+        if (!docId) continue;
 
-        try {
-          const pdfBuffer = await downloadDisclosure(docId);
-          await broadcastPdfToAll(member, pdfBuffer);
-        } catch (err) {
-          console.error(`Error handling docId ${docId}:`, err);
+        if (!visitedDocIds.includes(docId)) {
+          visitedDocIds.push(docId);
+
+          try {
+            const pdfBuffer = await downloadDisclosure(docId);
+            await broadcastPdfToAll(member, pdfBuffer);
+          } catch (err) {
+            console.error(`Error handling docId ${docId}:`, err);
+          }
         }
       }
-    }
 
-    saveVisitedDocIds(visitedDocIds);
+      saveVisitedDocIds(visitedDocIds);
+    }
   });
 
-  console.log("[INIT] Cron job scheduled to run every 15 minutes.");
+  console.log("[INIT] Cron job scheduled to run every minute between 9 AM and 10 AM EST.");
 }
 
 main().catch((err) => {
