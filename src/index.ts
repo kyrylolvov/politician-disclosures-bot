@@ -3,6 +3,7 @@ import cron from "node-cron";
 import { bot, setupBotHandlers, broadcastPdfToAll } from "./telegram";
 import { loadVisitedDocIds, saveVisitedDocIds } from "./store";
 import { fetchDisclosures, downloadDisclosure } from "./disclosures";
+import { postToTwitter } from "./twitter";
 
 /**
  * Processes and broadcasts new disclosures periodically.
@@ -22,6 +23,7 @@ async function processDisclosures() {
       try {
         const pdfBuffer = await downloadDisclosure(disclosure.fileUrl);
         await broadcastPdfToAll(disclosure, pdfBuffer);
+        await postToTwitter(disclosure);
       } catch (err) {
         console.error(`Error handling disclosure for ${disclosure.name}:`, err);
       }
