@@ -13,4 +13,3 @@ A Telegram bot built with [Bun](https://bun.sh), TypeScript, and [Telegraf](http
 
 - [Bun v1.1.37 or higher](https://bun.sh)  
 - A valid **Telegram Bot Token** (from [@BotFather](https://t.me/BotFather))  
-- Internet access to fetch ZIP files from the House Clerk’s site and to communicate with Telegram.
