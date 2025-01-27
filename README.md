@@ -5,10 +5,9 @@ A Telegram bot built with [Bun](https://bun.sh), TypeScript, and [Telegraf](http
 ## Features
 
 - **Periodic Checks**: Uses [`node-cron`](https://www.npmjs.com/package/node-cron) to fetch new disclosures every hour from [disclosures-clerk.house.gov](https://disclosures-clerk.house.gov/).  
-- **PDF Downloads**: Automatically downloads the PDF for each new “P” filing (`FilingType === "P"`) and broadcasts it.  
+- **PDF Downloads**: Automatically downloads the PDF for each new filing and broadcasts it.  
 - **User Subscriptions**: Telegram users just type `/start` to subscribe; the bot stores their chat ID and sends updates to them.  
 - **Bun Runtime**: Utilizes Bun for speed and simplicity.  
-- **Dummy HTTP Server**: For platforms like Render that require an open port, a minimal HTTP server is started to keep the service alive.
 
 ## Requirements
 
