@@ -37,7 +37,7 @@ async function processDisclosures() {
 
 /**
  * Initializes the Telegram bot, sets up cron scheduling,
- * and processes disclosures every 15 minutes.
+ * and processes disclosures every minute.
  */
 async function main() {
   setupBotHandlers();
